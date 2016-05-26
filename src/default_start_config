@@ -1,0 +1,6 @@
+[default]
+# Set this value to True, to enable this service.
+enabled=False
+
+# This is the path to the config file.
+config=/etc/doorcontrollerservice/default.conf
