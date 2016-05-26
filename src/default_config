@@ -1,14 +1,19 @@
 [global]
+# Path to the logfile
 logfile=/var/log/door.log
+# Path to the pidfile (stores the unique id of the process)
 pidfile=/var/run/doorcontrollerservice.pid
 
 [doorsensor]
+# Use a button connected to the door to check wether the door is open or closed.
 use_door_sensor=False
 door_sensor_gpio=3
+# Execute the scripts in those directorys when the door gets opened or closed.
 execute_on_opened=/var/doorcontrollerservice/onOpened
 execute_on_closed=/var/doorcontrollerservice/onClosed
 
 [webapi]
+# Set to false if other devices in the LAN should have access to the door.
 local_access_only=False
 port=6000
 
