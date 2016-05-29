@@ -5,6 +5,8 @@ import ConfigParser
 import os
 import time
 import errno
+import sys
+import signal
 
 from BaseHTTPServer import BaseHTTPRequestHandler, HTTPServer
 
@@ -28,23 +30,29 @@ class Context(object):
         if self.pidpath:
             os.remove(self.pidpath)
 
-    def registerPid(self):
+    def getPidFromFile(self):
         self.pidpath = context.config.get("global", "pidfile")
         if os.path.isfile(self.pidpath):
             try:
                 pidfile = open(self.pidpath, "r")
                 pid = int(pidfile.read())
                 pidfile.close()
+                return pid
+            except ValueError:
+                self.log("Error! Could not read pid from pidfile %s" %
+                          self.pidpath)
+        return -1
 
+    def registerPid(self):
+        pid = self.getPidFromFile()
+        if pid > 0:
+            try:
                 os.kill(pid, 0)
                 return False
             except OSError as err:
                 if err.errno == errno.EPERM:
                     # Process runnig, but we have no access to it
                     return False
-            except ValueError:
-                self.log("Error! Could not read pid from pidfile %s" %
-                         self.pidpath)
         pidfile = open(self.pidpath, "w+")
         pidfile.write(str(os.getpid()))
         pidfile.close()
@@ -53,7 +61,6 @@ class Context(object):
     def setupDoorController(self):
         self.door_controller = DoorController(self)
         if self.config.getboolean("doorsensor", "use_door_sensor"):
-            print "Setting door sensor"
             exec_opened_closed = (
                 self.config.get("doorsensor", "execute_on_opened"),
                 self.config.get("doorsensor", "execute_on_closed"))
@@ -117,7 +124,6 @@ class DoorController(object):
 
     def isDoorOpen(self):
         if self.use_door_sensor:
-            print True
             if gpio.input(self.sensor_gpio):
                 return True
             else:
@@ -159,7 +165,6 @@ class BierHTTPRequestHandler(BaseHTTPRequestHandler):
 def start_service(context):
     # context.registerPid() returns false, if there is already an instance of
     # this service.
-    print "Start Service"
     if not context.registerPid():
         context.log("Error! Attempt to start this service twice.")
         return None
@@ -175,29 +180,34 @@ def start_service(context):
     context.log("Starting server on port %d" % server_address[1])
     httpd.serve_forever()  
 
-if __name__ == "__main__":
+if __name__ == "__main__":           
+
     try:
         start_config = ConfigParser.RawConfigParser()
         start_config.read("/opt/doorcontrollerservice/default_start_config")
         start_config.read("/etc/default/doorcontrollerservice")
 
-        if start_config.getboolean("default", "enabled"):
-            print 41
-            config = ConfigParser.RawConfigParser()
-            config_path = start_config.get("default", "config")
-            print 41.5
-            config.read("/opt/doorcontrollerservice/default_config")
-            context = Context(config)
-            print 42
-            try:
-                context.config.read(config_path)
-                context.updateLogfile()
-            except Exception as err:
-                print err
-                context.log("Error! %s" % err)
+        config = ConfigParser.RawConfigParser()
+        config_path = start_config.get("default", "config")
+        config.read("/opt/doorcontrollerservice/default_config")
+        context = Context(config)
+        try:
+            context.config.read(config_path)
+            context.updateLogfile()
+        except Exception as err:
+            context.log("Error! %s" % err)
 
+        if len(sys.argv) > 1:
+            if sys.argv[1] in ("stop", "--stop", "restart", "--restart"):
+                pid = context.getPidFromFile()
+                if pid > 0:
+                    os.kill(pid, signal.SIGTERM)
+                if sys.argv[1] in ("stop", "--stop"):
+                    sys.exit()
+                
+        if start_config.getboolean("default", "enabled"):
             start_service(context)
-    except IOError as error:
+    except Exception as error:
         if locals().has_key("context"):
             context.log("Error! %s" % error)
             context.cleanup()
