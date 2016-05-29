@@ -1,0 +1,11 @@
+[Unit]
+Description=Door Server
+
+[Service]
+TimeoutStartSec=0
+ExecStart=/usr/bin/python /opt/doorcontrollerservice/main.py
+ExecStop=/usr/bin/python /opt/doorcontrollerservice/main.py --stop
+ExecRestart=/usr/bin/python /opt/doorcontrollerservice/main.py --restart
+
+[Install]
+WantedBy=multi-user.target
