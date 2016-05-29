@@ -1,2 +1,3 @@
-# RPI-Project
-Feel free to add any codem but please be sure to leave comments, that way it will be readable for everybody else. If you're just here for the show feel free to comment any innovative ideas. This project will include programming a lock using python. We will be utilizing The GPIO pins on the pi and a servo motor. I will continously be adding to this file throughout the project, especailly if any concerns were to surface. 
+# RPi-DoorController
+
+This is a service to controll a door lock by a Raspberry Pi with a servo motor.
